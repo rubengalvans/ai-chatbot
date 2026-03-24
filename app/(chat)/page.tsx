@@ -1,47 +1,25 @@
-"use client";
-
-import { useState } from "react";
 import { useChat } from "ai/react";
 
 export default function Page() {
 
-  const [agentMode, setAgentMode] = useState<"artek" | "lilith">("artek");
-
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: "/api/chat",
-    body: { agentMode }
+    api: "/api/chat"
   });
 
   return (
-    <div className="flex flex-col h-full p-6">
+    <div className="flex flex-col h-full">
 
-      {/* selector */}
-      <div style={{ display:"flex", gap:12, marginBottom:16 }}>
-        <button onClick={()=>setAgentMode("artek")}>
-          ⚡ Acción (Artek)
-        </button>
-
-        <button onClick={()=>setAgentMode("lilith")}>
-          🔥 Profundidad (Lilith)
-        </button>
-      </div>
-
-      {/* mensajes */}
-      <div style={{ flex:1 }}>
+      <div className="flex-1 overflow-auto">
         {messages.map(m => (
           <div key={m.id}>
-            <b>{m.role}</b>: {m.content}
+            {m.role === "user" ? "Tú: " : "IA: "}
+            {m.content}
           </div>
         ))}
       </div>
 
-      {/* input */}
       <form onSubmit={handleSubmit}>
-        <input
-          value={input}
-          onChange={handleInputChange}
-          placeholder="Escribe..."
-        />
+        <input value={input} onChange={handleInputChange} />
       </form>
 
     </div>
