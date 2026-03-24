@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           message: userMessage,
-          session_id: sessionId,
+          session_id: "1597868333",
         }),
       }
     );
