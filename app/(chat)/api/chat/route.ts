@@ -3,19 +3,26 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     const messages = body?.messages || [];
-    const last = messages[messages.length - 1];
-    const userMessage =
-      typeof last?.content === "string"
-        ? last.content
-        : Array.isArray(last?.content)
-          ? last.content.map((p: any) => p?.text || "").join(" ")
-          : "";
 
-    const sessionId =
-      body?.id ||
-      body?.chatId ||
-      body?.session_id ||
-      "web-chat";
+    const lastUserMessage = [...messages].reverse().find(
+      (m: any) => m?.role === "user"
+    );
+
+    let userMessage = "";
+
+    if (typeof lastUserMessage?.content === "string") {
+      userMessage = lastUserMessage.content;
+    } else if (Array.isArray(lastUserMessage?.content)) {
+      userMessage = lastUserMessage.content
+        .map((part: any) => part?.text || "")
+        .join(" ");
+    } else if (Array.isArray(lastUserMessage?.parts)) {
+      userMessage = lastUserMessage.parts
+        .map((part: any) => part?.text || "")
+        .join(" ");
+    } else if (typeof body?.input === "string") {
+      userMessage = body.input;
+    }
 
     const response = await fetch(
       "https://maiadrea69.app.n8n.cloud/webhook/33481d2c-d70d-49bb-91d7-aa1e7579d439",
@@ -33,14 +40,12 @@ export async function POST(req: Request) {
 
     if (!response.ok) {
       const text = await response.text();
-      return Response.json(
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: `Error webhook n8n: ${response.status} ${text}`,
-        },
-        { status: 200 }
-      );
+
+      return Response.json({
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: `Error webhook n8n: ${response.status} ${text}`,
+      });
     }
 
     const data = await response.json();
@@ -58,7 +63,9 @@ export async function POST(req: Request) {
     return Response.json({
       id: crypto.randomUUID(),
       role: "assistant",
-      content: `Error interno: ${error instanceof Error ? error.message : "desconocido"}`,
+      content: `Error interno: ${
+        error instanceof Error ? error.message : "desconocido"
+      }`,
     });
   }
 }
