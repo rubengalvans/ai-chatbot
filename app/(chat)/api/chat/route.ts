@@ -4,29 +4,37 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const messages = body?.messages || [];
+const messages = Array.isArray(body?.messages) ? body.messages : [];
+const lastMessage = messages.length ? messages[messages.length - 1] : null;
 
-    const lastUserMessage = [...messages].reverse().find(
-      (m: any) => m?.role === "user"
-    );
+function extractText(value: any): string {
+  if (!value) return "";
 
-    let userMessage = "";
+  if (typeof value === "string") return value;
 
-    if (typeof lastUserMessage?.content === "string") {
-      userMessage = lastUserMessage.content;
-    } else if (Array.isArray(lastUserMessage?.parts)) {
-      userMessage = lastUserMessage.parts
-        .map((part: any) => part?.text || "")
-        .join(" ");
-    } else if (Array.isArray(lastUserMessage?.content)) {
-      userMessage = lastUserMessage.content
-        .map((part: any) => part?.text || "")
-        .join(" ");
-    } else if (typeof body?.input === "string") {
-      userMessage = body.input;
-    } else if (typeof body?.message === "string") {
-      userMessage = body.message;
-    }
+  if (Array.isArray(value)) {
+    return value.map(extractText).filter(Boolean).join(" ");
+  }
+
+  if (typeof value === "object") {
+    return [
+      extractText(value.text),
+      extractText(value.content),
+      extractText(value.parts),
+      extractText(value.input),
+      extractText(value.message),
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  return "";
+}
+
+const userMessage =
+  extractText(lastMessage) ||
+  extractText(body?.message) ||
+  extractText(body?.input);
 
     const response = await fetch(
       "https://maiadrea69.app.n8n.cloud/webhook/33481d2c-d70d-49bb-91d7-aa1e7579d439",
