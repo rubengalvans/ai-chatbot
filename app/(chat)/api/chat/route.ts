@@ -1,3 +1,5 @@
+import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -12,16 +14,18 @@ export async function POST(req: Request) {
 
     if (typeof lastUserMessage?.content === "string") {
       userMessage = lastUserMessage.content;
-    } else if (Array.isArray(lastUserMessage?.content)) {
-      userMessage = lastUserMessage.content
-        .map((part: any) => part?.text || "")
-        .join(" ");
     } else if (Array.isArray(lastUserMessage?.parts)) {
       userMessage = lastUserMessage.parts
         .map((part: any) => part?.text || "")
         .join(" ");
+    } else if (Array.isArray(lastUserMessage?.content)) {
+      userMessage = lastUserMessage.content
+        .map((part: any) => part?.text || "")
+        .join(" ");
     } else if (typeof body?.input === "string") {
       userMessage = body.input;
+    } else if (typeof body?.message === "string") {
+      userMessage = body.message;
     }
 
     const response = await fetch(
@@ -38,34 +42,58 @@ export async function POST(req: Request) {
       }
     );
 
-    if (!response.ok) {
-      const text = await response.text();
-
-      return Response.json({
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: `Error webhook n8n: ${response.status} ${text}`,
-      });
-    }
-
     const data = await response.json();
 
-    return Response.json({
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content:
-        data.reply ||
-        data.response ||
-        data.output ||
-        "Sin respuesta desde n8n",
+    const reply =
+      data.reply ||
+      data.response ||
+      data.output ||
+      "Sin respuesta desde n8n";
+
+    return createUIMessageStreamResponse({
+      stream: createUIMessageStream({
+        execute({ writer }) {
+          writer.write({
+            type: "text-start",
+            id: "maia-response",
+          });
+
+          writer.write({
+            type: "text-delta",
+            id: "maia-response",
+            delta: reply,
+          });
+
+          writer.write({
+            type: "text-end",
+            id: "maia-response",
+          });
+        },
+      }),
     });
   } catch (error) {
-    return Response.json({
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content: `Error interno: ${
-        error instanceof Error ? error.message : "desconocido"
-      }`,
+    return createUIMessageStreamResponse({
+      stream: createUIMessageStream({
+        execute({ writer }) {
+          writer.write({
+            type: "text-start",
+            id: "maia-error",
+          });
+
+          writer.write({
+            type: "text-delta",
+            id: "maia-error",
+            delta: `Error interno: ${
+              error instanceof Error ? error.message : "desconocido"
+            }`,
+          });
+
+          writer.write({
+            type: "text-end",
+            id: "maia-error",
+          });
+        },
+      }),
     });
   }
 }
