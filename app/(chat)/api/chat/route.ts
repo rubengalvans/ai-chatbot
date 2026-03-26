@@ -1,3 +1,50 @@
+import { geolocation, ipAddress } from "@vercel/functions";
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  generateId,
+  stepCountIs,
+  streamText,
+} from "ai";
+import { checkBotId } from "botid/server";
+import { after } from "next/server";
+import { createResumableStreamContext } from "resumable-stream";
+import { auth, type UserType } from "@/app/(auth)/auth";
+import { entitlementsByUserType } from "@/lib/ai/entitlements";
+import {
+  allowedModelIds,
+  chatModels,
+  DEFAULT_CHAT_MODEL,
+  getCapabilities,
+} from "@/lib/ai/models";
+import { type RequestHints, systemPrompt } from "@/lib/ai/prompts";
+import { getLanguageModel } from "@/lib/ai/providers";
+import { createDocument } from "@/lib/ai/tools/create-document";
+import { editDocument } from "@/lib/ai/tools/edit-document";
+import { getWeather } from "@/lib/ai/tools/get-weather";
+import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
+import { updateDocument } from "@/lib/ai/tools/update-document";
+import { isProductionEnvironment } from "@/lib/constants";
+import {
+  createStreamId,
+  deleteChatById,
+  getChatById,
+  getMessageCountByUserId,
+  getMessagesByChatId,
+  saveChat,
+  saveMessages,
+  updateChatTitleById,
+  updateMessage,
+} from "@/lib/db/queries";
+import type { DBMessage } from "@/lib/db/schema";
+import { ChatbotError } from "@/lib/errors";
+import { checkIpRateLimit } from "@/lib/ratelimit";
+import type { ChatMessage } from "@/lib/types";
+import { convertToUIMessages, generateUUID } from "@/lib/utils";
+import { generateTitleFromUserMessage } from "../../actions";
+import { type PostRequestBody, postRequestBodySchema } from "./schema";
+
 export async function POST(request: Request) {
   let requestBody: PostRequestBody;
 
