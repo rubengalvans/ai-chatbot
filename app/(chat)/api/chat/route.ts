@@ -119,20 +119,26 @@ const webhookUrl = process.env.WEBHOOK_URL;
 if (!webhookUrl) {
   throw new Error("WEBHOOK_URL no está configurado");
 }
-   
-    const webhookResponse = await fetch(
+
+const sessionId = process.env.SESSION_ID;
+
+if (!sessionId) {
+  throw new Error("SESSION_ID no está configurado");
+}
+
+const webhookResponse = await fetch(
   webhookUrl,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: userText,
-          session_id: id,
-        }),
-      }
-    );
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      message: userText,
+      session_id: sessionId,
+    }),
+  }
+);    
 if (!webhookResponse.ok) {
   throw new Error("Error en webhook n8n");
 }   
