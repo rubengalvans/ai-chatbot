@@ -106,14 +106,19 @@ export async function POST(request: Request) {
     }
 
     // ====== EXTRAER TEXTO ======
-
-    const userText =
-      message?.parts?.map((p: any) => p?.text || "").join(" ") || "";
+    
+      const userText =
+  message?.parts?.find((p: any) => p.type === "text")?.text || "";
 
     // ====== LLAMAR N8N ======
+const webhookUrl = process.env.WEBHOOK_URL;
 
+if (!webhookUrl) {
+  throw new Error("WEBHOOK_URL no está configurado");
+}
+   
     const webhookResponse = await fetch(
-      "https://maiadrea69.app.n8n.cloud/webhook/33481d2c-d70d-49bb-91d7-aa1e7579d439",
+  webhookUrl,
       {
         method: "POST",
         headers: {
@@ -125,7 +130,9 @@ export async function POST(request: Request) {
         }),
       }
     );
-
+if (!webhookResponse.ok) {
+  throw new Error("Error en webhook n8n");
+}   
     const data = await webhookResponse.json();
 
     const reply =
