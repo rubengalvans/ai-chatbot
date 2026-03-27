@@ -107,9 +107,12 @@ export async function POST(request: Request) {
 
     // ====== EXTRAER TEXTO ======
     
-      const userText =
-  message?.parts?.find((p: any) => p.type === "text")?.text || "";
-
+    const userText =
+  message?.parts
+    ?.filter((p: any) => p.type === "text")
+    .map((p: any) => p.text)
+    .join(" ") || "";
+    
     // ====== LLAMAR N8N ======
 const webhookUrl = process.env.WEBHOOK_URL;
 
