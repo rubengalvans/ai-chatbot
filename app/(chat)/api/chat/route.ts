@@ -10,7 +10,7 @@ import {
 import { checkBotId } from "botid/server";
 import { after } from "next/server";
 import { createResumableStreamContext } from "resumable-stream";
-import { auth, type UserType } from "@/app/(auth)/auth";
+
 import { entitlementsByUserType } from "@/lib/ai/entitlements";
 import {
   allowedModelIds,
@@ -58,11 +58,7 @@ export async function POST(request: Request) {
   try {
     const { id, message, selectedVisibilityType } = requestBody;
 
-    const session = await auth();
-
-    if (!session?.user) {
-      return new ChatbotError("unauthorized:chat").toResponse();
-    }
+    
 
     await checkIpRateLimit(ipAddress(request));
 
@@ -72,21 +68,18 @@ export async function POST(request: Request) {
     let messagesFromDb: DBMessage[] = [];
     let titlePromise: Promise<string> | null = null;
 
-    if (chat) {
-      if (chat.userId !== session.user.id) {
-        return new ChatbotError("forbidden:chat").toResponse();
-      }
-      messagesFromDb = await getMessagesByChatId({ id });
-    } else if (message?.role === "user") {
-      await saveChat({
-        id,
-        userId: session.user.id,
-        title: "New chat",
-        visibility: selectedVisibilityType,
-      });
+   if (chat) {
+  messagesFromDb = await getMessagesByChatId({ id });
+} else if (message?.role === "user") {
+  await saveChat({
+    id,
+    userId: "public",
+    title: "New chat",
+    visibility: selectedVisibilityType,
+  });
 
-      titlePromise = generateTitleFromUserMessage({ message });
-    }
+  titlePromise = generateTitleFromUserMessage({ message });
+}
 
     // ====== GUARDAR MENSAJE USER ======
 
